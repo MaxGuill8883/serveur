@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM Server Manager</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --border: #30363d;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d29922;
+    --blue: #58a6ff;
+    --text: #e6edf3;
+    --sub: #8b949e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* ── Header ── */
+  header {
+    width: 100%;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--text);
+  }
+  header .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── PIN Screen ── */
+  #pin-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 24px;
+    padding: 40px;
+  }
+  #pin-screen h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    color: var(--text);
+  }
+  #pin-screen p { color: var(--sub); font-size: 14px; }
+
+  .pin-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    width: 320px;
+  }
+  .pin-box input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 24px;
+    letter-spacing: 8px;
+    text-align: center;
+    padding: 12px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .pin-box input:focus { border-color: var(--blue); }
+  .pin-error { color: var(--red); font-size: 13px; display: none; }
+
+  /* ── Dashboard ── */
+  #dashboard { display: none; width: 100%; max-width: 1100px; padding: 24px; }
+
+  /* API URL banner */
+  .api-banner {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .api-banner label { color: var(--sub); font-size: 13px; white-space: nowrap; }
+  .api-banner input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 6px 10px;
+    outline: none;
+  }
+  .api-banner input:focus { border-color: var(--blue); }
+  .api-banner button {
+    background: var(--blue);
+    border: none;
+    border-radius: 6px;
+    color: #0d1117;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 7px 16px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* Global controls */
+  .global-controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  /* Server cards */
+  .servers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 760px) { .servers { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .card-header {
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-header .title { font-weight: 600; font-size: 15px; }
+  .card-header .subtitle { color: var(--sub); font-size: 12px; margin-top: 2px; }
+  .status-dot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .status-dot::before {
+    content: '';
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--sub);
+  }
+  .status-dot.online { color: var(--green); }
+  .status-dot.online::before { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .status-dot.offline { color: var(--red); }
+  .status-dot.offline::before { background: var(--red); }
+  .status-dot.starting { color: var(--yellow); }
+  .status-dot.starting::before { background: var(--yellow); animation: pulse 1s infinite; }
+
+  .log-area {
+    flex: 1;
+    background: var(--bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--sub);
+    padding: 10px;
+    height: 180px;
+    overflow-y: auto;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .log-area .log-error { color: var(--red); }
+  .log-area .log-warn  { color: var(--yellow); }
+  .log-area .log-ok    { color: var(--green); }
+
+  .card-btns {
+    padding: 10px 12px;
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Buttons */
+  .btn {
+    border: none;
+    border-radius: 7px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+  }
+  .btn:hover { opacity: .85; transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn-green  { background: var(--green); color: #0d1117; }
+  .btn-red    { background: var(--red);   color: white; }
+  .btn-blue   { background: var(--blue);  color: #0d1117; }
+  .btn-ghost  { background: #21262d; color: var(--sub); }
+  .btn-lg     { padding: 11px 28px; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="dot"></div>
+  <h1>CRM Server Manager</h1>
+</header>
+
+<!-- PIN Screen -->
+<div id="pin-screen">
+  <h2>🔐 Accès sécurisé</h2>
+  <p>Entre ton PIN pour accéder au panneau de contrôle</p>
+  <div class="pin-box">
+    <input type="password" id="pin-input" maxlength="10" placeholder="••••"
+           onkeydown="if(event.key==='Enter') checkPin()">
+    <span class="pin-error" id="pin-error">PIN incorrect</span>
+    <button class="btn btn-blue btn-lg" onclick="checkPin()">Déverrouiller</button>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboard">
+
+  <!-- API URL -->
+  <div class="api-banner">
+    <label>URL de l'agent :</label>
+    <input type="text" id="api-url" placeholder="https://api.qd.je" value="">
+    <button onclick="saveApiUrl()">Enregistrer</button>
+  </div>
+
+  <!-- Global buttons -->
+  <div class="global-controls">
+    <button class="btn btn-green btn-lg" onclick="action('/start/all')">▶  Démarrer tout</button>
+    <button class="btn btn-red   btn-lg" onclick="action('/stop/all')">■  Arrêter tout</button>
+  </div>
+
+  <!-- Server cards -->
+  <div class="servers">
+    <div class="card" id="card-paper">
+      <div class="card-header">
+        <div>
+          <div class="title">☕ Paper 1.21.1</div>
+          <div class="subtitle">Backend Minecraft · :25566</div>
+        </div>
+        <div class="status-dot offline" id="status-paper">Hors ligne</div>
+      </div>
+      <div class="log-area" id="log-paper"></div>
+      <div class="card-btns">
+        <button class="btn btn-green" onclick="action('/start/paper')">▶ Start</button>
+        <button class="btn btn-red"   onclick="action('/stop/paper')">■ Stop</button>
+        <button class="btn btn-ghost" onclick="clearLog('paper')">Clear</button>
+      </div>
+    </div>
+
+    <div class="card" id="card-velocity">
+      <div class="card-header">
+        <div>
+          <div class="title">⚡ Velocity</div>
+          <div class="subtitle">Proxy · :25565</div>
+        </div>
+        <div class="status-dot offline" id="status-velocity">Hors ligne</div>
+      </div>
+      <div class="log-area" id="log-velocity"></div>
+      <div class="card-btns">
+        <button class="btn btn-green" onclick="action('/start/velocity')">▶ Start</button>
+        <button class="btn btn-red"   onclick="action('/stop/velocity')">■ Stop</button>
+        <button class="btn btn-ghost" onclick="clearLog('velocity')">Clear</button>
+      </div>
+    </div>
+
+    <div class="card" id="card-cloudflared">
+      <div class="card-header">
+        <div>
+          <div class="title">☁ Cloudflare Tunnel</div>
+          <div class="subtitle">Tunnel public</div>
+        </div>
+        <div class="status-dot offline" id="status-cloudflared">Hors ligne</div>
+      </div>
+      <div class="log-area" id="log-cloudflared"></div>
+      <div class="card-btns">
+        <button class="btn btn-green" onclick="action('/start/cloudflared')">▶ Start</button>
+        <button class="btn btn-red"   onclick="action('/stop/cloudflared')">■ Stop</button>
+        <button class="btn btn-ghost" onclick="clearLog('cloudflared')">Clear</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const PIN_KEY    = "mcm_pin";
+  const API_KEY    = "mcm_api_url";
+  const SERVERS    = ["paper", "velocity", "cloudflared"];
+
+  let pin      = "";
+  let apiUrl   = localStorage.getItem(API_KEY) || "";
+  let polling  = null;
+
+  // ── PIN ──────────────────────────────────────────────────────────────────
+  function checkPin() {
+    const val = document.getElementById("pin-input").value;
+    // On vérifie le PIN contre l'agent
+    const url = (document.getElementById("api-url")?.value || apiUrl).replace(/\/$/, "");
+    if (!url) {
+      // Pas d'URL encore, on stocke juste le PIN localement pour l'utiliser plus tard
+      pin = val;
+      document.getElementById("pin-screen").style.display = "none";
+      document.getElementById("dashboard").style.display  = "block";
+      document.getElementById("api-url").value = apiUrl;
+      startPolling();
+      return;
+    }
+    fetch(`${url}/status`)
+      .then(r => {
+        // Si l'agent répond, on valide le PIN en faisant un POST test
+        pin = val;
+        document.getElementById("pin-screen").style.display = "none";
+        document.getElementById("dashboard").style.display  = "block";
+        document.getElementById("api-url").value = apiUrl;
+        startPolling();
+      })
+      .catch(() => {
+        // Agent pas accessible, on entre quand même
+        pin = val;
+        document.getElementById("pin-screen").style.display = "none";
+        document.getElementById("dashboard").style.display  = "block";
+        document.getElementById("api-url").value = apiUrl;
+      });
+  }
+
+  function saveApiUrl() {
+    apiUrl = document.getElementById("api-url").value.replace(/\/$/, "");
+    localStorage.setItem(API_KEY, apiUrl);
+    startPolling();
+  }
+
+  // ── API calls ─────────────────────────────────────────────────────────────
+  function action(path) {
+    if (!apiUrl) { alert("Configure d'abord l'URL de l'agent !"); return; }
+    fetch(`${apiUrl}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin })
+    })
+    .then(r => r.json())
+    .then(d => { if (d.error) alert("Erreur : " + d.error); })
+    .catch(e => alert("Agent inaccessible : " + e));
+  }
+
+  // ── Status polling ────────────────────────────────────────────────────────
+  function startPolling() {
+    if (polling) clearInterval(polling);
+    polling = setInterval(fetchStatus, 3000);
+    fetchStatus();
+    SERVERS.forEach(fetchLogs);
+    setInterval(() => SERVERS.forEach(fetchLogs), 5000);
+  }
+
+  function fetchStatus() {
+    if (!apiUrl) return;
+    fetch(`${apiUrl}/status`)
+      .then(r => r.json())
+      .then(data => {
+        SERVERS.forEach(key => {
+          const el = document.getElementById(`status-${key}`);
+          if (!el) return;
+          const s = data[key] || "offline";
+          const labels = { online: "En ligne", offline: "Hors ligne", starting: "Démarrage…", error: "Erreur" };
+          el.className = `status-dot ${s}`;
+          el.textContent = labels[s] || s;
+        });
+      })
+      .catch(() => {});
+  }
+
+  function fetchLogs(key) {
+    if (!apiUrl) return;
+    fetch(`${apiUrl}/logs/${key}`)
+      .then(r => r.json())
+      .then(data => {
+        const box = document.getElementById(`log-${key}`);
+        if (!box || !data.logs) return;
+        box.innerHTML = data.logs.map(line => {
+          if (line.includes("ERROR") || line.includes("ERREUR"))
+            return `<span class="log-error">${escHtml(line)}</span>`;
+          if (line.includes("WARN"))
+            return `<span class="log-warn">${escHtml(line)}</span>`;
+          if (line.includes("Done") || line.includes("Listening") || line.includes("Registered"))
+            return `<span class="log-ok">${escHtml(line)}</span>`;
+          return escHtml(line);
+        }).join("\n");
+        box.scrollTop = box.scrollHeight;
+      })
+      .catch(() => {});
+  }
+
+  function clearLog(key) {
+    const box = document.getElementById(`log-${key}`);
+    if (box) box.innerHTML = "";
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+</script>
+</body>
+</html>
